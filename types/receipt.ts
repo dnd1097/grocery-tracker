@@ -24,6 +24,7 @@ export interface ReceiptItem {
   unitPrice: number | null;
   totalPrice: number;
   normalizedItemId: string | null;
+  category: string | null;
   lineNumber: number | null;
   notes: string | null;
   createdAt: string;
