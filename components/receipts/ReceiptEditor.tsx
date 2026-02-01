@@ -15,9 +15,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { Trash2, Plus, Save, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { GROCERY_CATEGORIES } from "@/lib/utils/categories";
 
 interface ReceiptEditorProps {
   receipt: Receipt;
@@ -50,6 +59,7 @@ export function ReceiptEditor({ receipt: initialReceipt }: ReceiptEditorProps) {
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             totalPrice: item.totalPrice,
+            category: item.category,
             lineNumber: item.lineNumber,
             notes: item.notes,
           })),
@@ -89,7 +99,9 @@ export function ReceiptEditor({ receipt: initialReceipt }: ReceiptEditorProps) {
       unitPrice: null,
       totalPrice: 0,
       normalizedItemId: null,
+      category: null,
       lineNumber: items.length + 1,
+      notes: null,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -253,6 +265,7 @@ export function ReceiptEditor({ receipt: initialReceipt }: ReceiptEditorProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>Item Name</TableHead>
+                <TableHead className="w-40">Category</TableHead>
                 <TableHead className="w-24">Qty</TableHead>
                 <TableHead className="w-28">Unit Price</TableHead>
                 <TableHead className="w-28">Total</TableHead>
@@ -274,6 +287,29 @@ export function ReceiptEditor({ receipt: initialReceipt }: ReceiptEditorProps) {
                       />
                     ) : (
                       item.rawName
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {isEditing ? (
+                      <Select
+                        value={item.category || "Other"}
+                        onValueChange={(value) =>
+                          handleItemChange(index, "category", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GROCERY_CATEGORIES.map((cat) => (
+                            <SelectItem key={cat} value={cat}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Badge variant="secondary">{item.category || "Other"}</Badge>
                     )}
                   </TableCell>
                   <TableCell>

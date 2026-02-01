@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { receipts, receiptItems } from "@/lib/db/schema";
 import { saveReceiptImage, isValidImage } from "@/lib/services/image-handler";
 import { parseReceipt } from "@/lib/services/receipt-parser";
+import { categorizeItem } from "@/lib/utils/categories";
 import { desc, and, gte, lte, like } from "drizzle-orm";
 
 /**
@@ -146,7 +147,7 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    // Create receipt items
+    // Create receipt items with auto-categorization
     const items = await db
       .insert(receiptItems)
       .values(
@@ -156,6 +157,7 @@ export async function POST(request: NextRequest) {
           quantity: item.quantity ?? 1,
           unitPrice: item.unitPrice ?? null,
           totalPrice: item.totalPrice,
+          category: categorizeItem(item.name),
           lineNumber: index + 1,
         }))
       )
