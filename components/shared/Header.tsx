@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Receipt, LayoutDashboard } from "lucide-react";
+import { Receipt, LayoutDashboard, Package, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Receipts", href: "/receipts", icon: Receipt },
+  { name: "Items", href: "/items", icon: Package },
+  { name: "Shopping List", href: "/shopping-list", icon: ShoppingCart },
 ];
 
 export function Header() {
