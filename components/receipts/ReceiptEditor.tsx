@@ -23,7 +23,17 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, Plus, Save, X } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Trash2, Plus, Save, X, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { GROCERY_CATEGORIES } from "@/lib/utils/categories";
@@ -37,6 +47,10 @@ export function ReceiptEditor({ receipt: initialReceipt }: ReceiptEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [receipt, setReceipt] = useState(initialReceipt);
   const [items, setItems] = useState<ReceiptItem[]>(initialReceipt.items || []);
+  const [showReparseDialog, setShowReparseDialog] = useState(false);
+  const [isReparsing, setIsReparsing] = useState(false);
+  const [showDeleteItemDialog, setShowDeleteItemDialog] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<number | null>(null);
   const router = useRouter();
 
   const handleSave = async () => {
@@ -109,7 +123,38 @@ export function ReceiptEditor({ receipt: initialReceipt }: ReceiptEditorProps) {
   };
 
   const handleDeleteItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index));
+    setItemToDelete(index);
+    setShowDeleteItemDialog(true);
+  };
+
+  const confirmDeleteItem = () => {
+    if (itemToDelete !== null) {
+      setItems(items.filter((_, i) => i !== itemToDelete));
+      setItemToDelete(null);
+    }
+    setShowDeleteItemDialog(false);
+  };
+
+  const handleReparse = async () => {
+    setIsReparsing(true);
+    try {
+      const response = await fetch(`/api/receipts/${receipt.id}/reparse`, {
+        method: "POST",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to re-parse receipt");
+      }
+
+      toast.success("Receipt re-parsed successfully");
+      router.refresh();
+    } catch (error) {
+      console.error("Re-parse error:", error);
+      toast.error("Failed to re-parse receipt");
+    } finally {
+      setIsReparsing(false);
+      setShowReparseDialog(false);
+    }
   };
 
   const handleItemChange = (
@@ -130,7 +175,17 @@ export function ReceiptEditor({ receipt: initialReceipt }: ReceiptEditorProps) {
             <CardTitle>Receipt Details</CardTitle>
             <div className="flex gap-2">
               {!isEditing ? (
-                <Button onClick={() => setIsEditing(true)}>Edit</Button>
+                <>
+                  <Button
+                    onClick={() => setShowReparseDialog(true)}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Re-parse
+                  </Button>
+                  <Button onClick={() => setIsEditing(true)}>Edit</Button>
+                </>
               ) : (
                 <>
                   <Button
@@ -400,6 +455,56 @@ export function ReceiptEditor({ receipt: initialReceipt }: ReceiptEditorProps) {
           </Table>
         </CardContent>
       </Card>
+
+      {/* Re-parse Confirmation Dialog */}
+      <AlertDialog
+        open={showReparseDialog}
+        onOpenChange={setShowReparseDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Re-parse Receipt?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will delete all current line items and re-extract data from
+              the receipt image using AI. Any manual edits will be lost. This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReparse}
+              disabled={isReparsing}
+            >
+              {isReparsing ? "Re-parsing..." : "Re-parse"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Item Confirmation Dialog */}
+      <AlertDialog
+        open={showDeleteItemDialog}
+        onOpenChange={setShowDeleteItemDialog}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Item?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this item from the receipt. This
+              cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setItemToDelete(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteItem}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
