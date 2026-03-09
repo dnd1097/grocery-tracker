@@ -1,4 +1,4 @@
-export const GROCERY_CATEGORIES = [
+export const DEFAULT_GROCERY_CATEGORIES = [
   "Produce",
   "Dairy",
   "Meat & Seafood",
@@ -17,7 +17,10 @@ export const GROCERY_CATEGORIES = [
   "Other",
 ] as const;
 
-export type GroceryCategory = (typeof GROCERY_CATEGORIES)[number];
+// For backwards compatibility
+export const GROCERY_CATEGORIES = DEFAULT_GROCERY_CATEGORIES;
+
+export type GroceryCategory = (typeof GROCERY_CATEGORIES)[number] | string;
 
 // Keyword mapping for auto-categorization
 const CATEGORY_KEYWORDS: Record<GroceryCategory, string[]> = {
@@ -461,4 +464,21 @@ export function categorizeBatch(
     result[item.id] = categorizeItem(item.rawName);
   }
   return result;
+}
+
+/**
+ * Gets all categories (default + custom)
+ * This is a server-side function that merges default and custom categories
+ * @param customCategories Array of custom category names from database
+ * @returns Array of all category names
+ */
+export function getAllCategories(customCategories: string[] = []): string[] {
+  const defaultCategories: string[] = Array.from(DEFAULT_GROCERY_CATEGORIES);
+
+  // Merge custom categories, avoiding duplicates
+  const uniqueCustom = customCategories.filter(
+    (cat) => !defaultCategories.includes(cat)
+  );
+
+  return [...defaultCategories, ...uniqueCustom.sort()];
 }

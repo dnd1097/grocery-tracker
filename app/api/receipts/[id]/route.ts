@@ -89,6 +89,7 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
             quantity: item.quantity ?? 1,
             unitPrice: item.unitPrice ?? null,
             totalPrice: item.totalPrice,
+            category: item.category ?? null,
             lineNumber: item.lineNumber ?? index + 1,
             normalizedItemId: item.normalizedItemId ?? null,
             notes: item.notes ?? null,

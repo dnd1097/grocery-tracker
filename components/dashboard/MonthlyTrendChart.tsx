@@ -30,7 +30,7 @@ export function MonthlyTrendChart({ data }: MonthlyTrendChartProps) {
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="month" />
         <YAxis />
-        <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+        <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
         <Line
           type="monotone"
           dataKey="total"

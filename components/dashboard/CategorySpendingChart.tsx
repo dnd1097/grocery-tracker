@@ -37,7 +37,7 @@ export function CategorySpendingChart({
           width={100}
           fontSize={12}
         />
-        <Tooltip formatter={(value: number) => `$${value.toFixed(2)}`} />
+        <Tooltip formatter={(value) => `$${Number(value).toFixed(2)}`} />
         <Bar dataKey="total" fill="#8884d8" />
       </BarChart>
     </ResponsiveContainer>

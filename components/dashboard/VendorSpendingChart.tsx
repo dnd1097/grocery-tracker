@@ -44,7 +44,7 @@ export function VendorSpendingChart({ data }: VendorSpendingChartProps) {
           cx="50%"
           cy="50%"
           outerRadius={100}
-          label={(entry) =>
+          label={(entry: any) =>
             `${entry.vendor}: $${entry.total.toFixed(0)}`
           }
         >
@@ -56,7 +56,7 @@ export function VendorSpendingChart({ data }: VendorSpendingChartProps) {
           ))}
         </Pie>
         <Tooltip
-          formatter={(value: number) => `$${value.toFixed(2)}`}
+          formatter={(value) => `$${Number(value).toFixed(2)}`}
         />
         <Legend />
       </PieChart>

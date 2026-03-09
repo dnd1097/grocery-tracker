@@ -36,13 +36,13 @@ import {
 import { Trash2, Plus, Save, X, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { GROCERY_CATEGORIES } from "@/lib/utils/categories";
 
 interface ReceiptEditorProps {
   receipt: Receipt;
+  categories: string[];
 }
 
-export function ReceiptEditor({ receipt: initialReceipt }: ReceiptEditorProps) {
+export function ReceiptEditor({ receipt: initialReceipt, categories }: ReceiptEditorProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [receipt, setReceipt] = useState(initialReceipt);
@@ -319,12 +319,12 @@ export function ReceiptEditor({ receipt: initialReceipt }: ReceiptEditorProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Item Name</TableHead>
+                <TableHead className="min-w-[200px]">Item Name</TableHead>
                 <TableHead className="w-40">Category</TableHead>
                 <TableHead className="w-24">Qty</TableHead>
                 <TableHead className="w-28">Unit Price</TableHead>
                 <TableHead className="w-28">Total</TableHead>
-                <TableHead>Notes</TableHead>
+                <TableHead className="min-w-[120px]">Notes</TableHead>
                 {isEditing && <TableHead className="w-16"></TableHead>}
               </TableRow>
             </TableHeader>
@@ -356,7 +356,7 @@ export function ReceiptEditor({ receipt: initialReceipt }: ReceiptEditorProps) {
                           <SelectValue placeholder="Category" />
                         </SelectTrigger>
                         <SelectContent>
-                          {GROCERY_CATEGORIES.map((cat) => (
+                          {categories.map((cat) => (
                             <SelectItem key={cat} value={cat}>
                               {cat}
                             </SelectItem>

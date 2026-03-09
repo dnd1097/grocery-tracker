@@ -1,10 +1,15 @@
 import { db } from "@/lib/db";
-import { receiptItems, receipts } from "@/lib/db/schema";
-import { sql, and, inArray, like } from "drizzle-orm";
+import { receiptItems, receipts, items, customCategories } from "@/lib/db/schema";
+import { sql, and, inArray, like, or, eq } from "drizzle-orm";
+import { getAllCategories as mergeCategories, DEFAULT_GROCERY_CATEGORIES } from "./categories";
 
 export interface AggregatedItem {
+  itemId: string;
   normalizedName: string;
+  displayName: string | null;
   category: string | null;
+  categorySource: string | null;
+  alternateNames: string | null;
   purchaseCount: number;
   lastPurchaseDate: string;
   firstPurchaseDate: string;
@@ -18,7 +23,7 @@ export interface AggregatedItem {
 export interface ItemPurchaseInstance {
   id: string;
   rawName: string;
-  quantity: number;
+  quantity: number | null;
   unitPrice: number | null;
   totalPrice: number;
   category: string | null;
@@ -44,17 +49,28 @@ export async function getAggregatedItems(filters?: {
   }
 
   if (filters?.categories && filters.categories.length > 0) {
-    conditions.push(inArray(receiptItems.category, filters.categories));
+    conditions.push(inArray(items.category, filters.categories));
   }
 
   if (filters?.searchTerm) {
-    conditions.push(like(receiptItems.rawName, `%${filters.searchTerm}%`));
+    const term = `%${filters.searchTerm.toLowerCase()}%`;
+    conditions.push(
+      or(
+        like(items.canonicalName, term),
+        like(items.displayName, term),
+        like(items.alternateNames, term)
+      )
+    );
   }
 
-  const items = await db
+  const aggregated = await db
     .select({
-      normalizedName: sql<string>`lower(trim(${receiptItems.rawName}))`,
-      category: receiptItems.category,
+      itemId: items.id,
+      normalizedName: items.canonicalName,
+      displayName: items.displayName,
+      category: items.category,
+      categorySource: items.categorySource,
+      alternateNames: items.alternateNames,
       purchaseCount: sql<number>`count(*)`,
       lastPurchaseDate: sql<string>`max(${receipts.purchaseDate})`,
       firstPurchaseDate: sql<string>`min(${receipts.purchaseDate})`,
@@ -65,17 +81,29 @@ export async function getAggregatedItems(filters?: {
       vendors: sql<string>`group_concat(distinct ${receipts.storeName})`,
     })
     .from(receiptItems)
-    .innerJoin(receipts, sql`${receiptItems.receiptId} = ${receipts.id}`)
+    .innerJoin(receipts, eq(receiptItems.receiptId, receipts.id))
+    .leftJoin(items, eq(receiptItems.normalizedItemId, items.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .groupBy(
-      sql`lower(trim(${receiptItems.rawName}))`,
-      receiptItems.category
-    );
+    .groupBy(items.id);
 
-  return items.map((item) => ({
-    ...item,
-    vendors: item.vendors ? item.vendors.split(",") : [],
-  }));
+  return aggregated
+    .filter((item) => item.itemId !== null && item.normalizedName !== null)
+    .map((item) => ({
+      itemId: item.itemId!,
+      normalizedName: item.normalizedName!,
+      displayName: item.displayName,
+      category: item.category,
+      categorySource: item.categorySource,
+      alternateNames: item.alternateNames,
+      purchaseCount: item.purchaseCount,
+      lastPurchaseDate: item.lastPurchaseDate,
+      firstPurchaseDate: item.firstPurchaseDate,
+      avgPrice: item.avgPrice,
+      minPrice: item.minPrice,
+      maxPrice: item.maxPrice,
+      totalSpent: item.totalSpent,
+      vendors: item.vendors ? item.vendors.split(",") : [],
+    }));
 }
 
 /**
@@ -122,15 +150,29 @@ export async function getAllVendors(): Promise<string[]> {
 }
 
 /**
- * Get all unique categories from receipt items
- * @returns Array of unique category names
+ * Get all unique categories from items and custom categories
+ * @returns Array of unique category names (default + custom + used categories)
  */
 export async function getAllCategories(): Promise<string[]> {
-  const categories = await db
-    .selectDistinct({ category: receiptItems.category })
-    .from(receiptItems)
-    .where(sql`${receiptItems.category} is not null`)
-    .orderBy(receiptItems.category);
+  // Get custom categories from database
+  const customCats = await db.select().from(customCategories);
+  const customCatNames = customCats.map((c) => c.name);
 
-  return categories.map((c) => c.category!).filter(Boolean);
+  // Get categories that are actually used in items
+  const usedCategories = await db
+    .selectDistinct({ category: items.category })
+    .from(items)
+    .where(sql`${items.category} is not null`)
+    .orderBy(items.category);
+
+  const usedCatNames = usedCategories.map((c) => c.category!).filter(Boolean);
+
+  // Merge all categories: default + custom + used
+  const allCategories = mergeCategories(customCatNames);
+
+  // Add any used categories that aren't in the list yet
+  const finalCategories = new Set(allCategories);
+  usedCatNames.forEach((cat) => finalCategories.add(cat));
+
+  return Array.from(finalCategories).sort();
 }

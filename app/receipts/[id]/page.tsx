@@ -29,9 +29,31 @@ async function getReceipt(id: string): Promise<Receipt | null> {
   }
 }
 
+async function getAllCategories(): Promise<string[]> {
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+    const response = await fetch(`${baseUrl}/api/items?filters=true`, {
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    return data.categories || [];
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    return [];
+  }
+}
+
 export default async function ReceiptDetailPage({ params }: PageProps) {
   const { id } = await params;
-  const receipt = await getReceipt(id);
+  const [receipt, categories] = await Promise.all([
+    getReceipt(id),
+    getAllCategories(),
+  ]);
 
   if (!receipt) {
     notFound();
@@ -74,7 +96,7 @@ export default async function ReceiptDetailPage({ params }: PageProps) {
         </div>
 
         <div>
-          <ReceiptEditor receipt={receipt} />
+          <ReceiptEditor receipt={receipt} categories={categories} />
         </div>
       </div>
     </div>

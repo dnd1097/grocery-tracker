@@ -22,6 +22,20 @@
       "when": 1769925711061,
       "tag": "0002_overconfident_blink",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1769927878943,
+      "tag": "0003_chief_susan_delgado",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1769929144137,
+      "tag": "0004_dusty_maggott",
+      "breakpoints": true
     }
   ]
 }

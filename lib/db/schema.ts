@@ -110,6 +110,40 @@ export const shoppingListItems = sqliteTable("shopping_list_items", {
     .$defaultFn(() => new Date().toISOString()),
 });
 
+// Items master table (canonical items for categorization and aggregation)
+export const items = sqliteTable("items", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => uuidv4()),
+  canonicalName: text("canonical_name").notNull().unique(), // Normalized: lower(trim())
+  displayName: text("display_name"), // Optional prettier display
+  category: text("category"), // Manual override category
+  alternateNames: text("alternate_names"), // Comma-separated alternate names
+  autoCategory: text("auto_category"), // Original auto-categorized value
+  categorySource: text("category_source").default("auto"), // 'auto' or 'manual'
+  notes: text("notes"),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
+// Custom categories table
+export const customCategories = sqliteTable("custom_categories", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => uuidv4()),
+  name: text("name").notNull().unique(),
+  createdAt: text("created_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at")
+    .notNull()
+    .$defaultFn(() => new Date().toISOString()),
+});
+
 // Define relationships
 export const receiptsRelations = relations(receipts, ({ many }) => ({
   items: many(receiptItems),
@@ -119,6 +153,10 @@ export const receiptItemsRelations = relations(receiptItems, ({ one }) => ({
   receipt: one(receipts, {
     fields: [receiptItems.receiptId],
     references: [receipts.id],
+  }),
+  item: one(items, {
+    fields: [receiptItems.normalizedItemId],
+    references: [items.id],
   }),
 }));
 
@@ -136,6 +174,10 @@ export const shoppingListItemsRelations = relations(
   })
 );
 
+export const itemsRelations = relations(items, ({ many }) => ({
+  receiptItems: many(receiptItems),
+}));
+
 // Type exports for use in application code
 export type Receipt = typeof receipts.$inferSelect;
 export type NewReceipt = typeof receipts.$inferInsert;
@@ -145,3 +187,7 @@ export type ShoppingList = typeof shoppingLists.$inferSelect;
 export type NewShoppingList = typeof shoppingLists.$inferInsert;
 export type ShoppingListItem = typeof shoppingListItems.$inferSelect;
 export type NewShoppingListItem = typeof shoppingListItems.$inferInsert;
+export type Item = typeof items.$inferSelect;
+export type NewItem = typeof items.$inferInsert;
+export type CustomCategory = typeof customCategories.$inferSelect;
+export type NewCustomCategory = typeof customCategories.$inferInsert;
